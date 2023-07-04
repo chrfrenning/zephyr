@@ -17,4 +17,4 @@ RUN pip3 install -r requirements.txt
 COPY . .
 RUN chmod +x startup.sh
 
-CMD [ "/bin/sh", "startup.sh"]
+CMD [ "python3", "-m" , "server", "run"]

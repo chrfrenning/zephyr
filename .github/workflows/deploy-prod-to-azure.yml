@@ -1,0 +1,75 @@
+name: Build container and deploy server to Azure
+
+env:
+  AZURE_WEBAPP_NAME: vkrjjzaur
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "server/**" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    #defaults:
+    #  run:
+    #    working-directory: ./server
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.5.0
+
+      - name: Log in to GitHub container registry
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: ${{ secrets.ACR_FQDN }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Lowercase the repo name and username
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+        
+      - name: Where are we
+        run: pwd
+                
+      - name: Move into server directory
+        run: cd ./server
+        
+      - name: What is here
+        run: ls
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v4.0.0
+        with:
+          tags: ${{ secrets.ACR_FQDN }}/zephyr-server:latest # ${{ env.REPO }}:${{ github.sha }}
+          file: ./server/Dockerfile
+          context: ./server
+          push: true
+          
+
+#  deploy:
+#    permissions:
+#      contents: none
+#    runs-on: ubuntu-latest
+#    needs: build
+#    environment:
+#      name: 'Development'
+#      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+#
+#    steps:
+#      - name: Lowercase the repo name and username
+#        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+#
+#      - name: Deploy to Azure Web App
+#        id: deploy-to-webapp
+#        uses: azure/webapps-deploy@v2
+#        with:
+#          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+#          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+#          images: 'ghcr.io/${{ env.REPO }}:${{ github.sha }}'

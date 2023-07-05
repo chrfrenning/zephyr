@@ -33,6 +33,7 @@ Werkzeug # ==2.0.3
 # Azure
 azure-storage-blob
 azure-data-tables
+azure-storage-queue
 
 
 # Juice

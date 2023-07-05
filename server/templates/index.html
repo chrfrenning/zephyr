@@ -1,16 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Zephyr/1.0</title>
-    <link rel="stylesheet" href="static/css/style.css">
-    <script src="static/js/script.js"></script>
+  <meta charset="UTF-8">
+  <title>Zephyr/1.0</title>
+  <link rel="stylesheet" href="static/css/style.css">
+  <script src="static/js/script.js"></script>
 </head>
 
 <body>
-    <img src="static/gfx/logo.jpg" alt="Zephyr Logo" id="logo">
-    <h1>Zephyr/1.0 - Share data easily</h1>
-    <script>helloWorld()</script>
-
-    
+  <img src="static/gfx/logo.jpg" alt="Zephyr Logo" id="logo">
+  <h1>Zephyr/1.0 - Share data easily</h1>
+  <script>helloWorld()</script>
+  
+  <!-- area to upload files -->
+  <div id="drop-area">
+    <form class="upload-form">
+      <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
+      <input type="file" id="fileElem" multiple accept="text/csv" onchange="handleFiles(this.files)">
+      <label class="button" for="fileElem">Select some files</label>
+    </form>
+  </div>
+  <script src="static/js/upload.js"></script>
+  
+  
 </body>

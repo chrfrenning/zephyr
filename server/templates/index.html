@@ -21,6 +21,41 @@
     </form>
   </div>
   <script src="static/js/upload.js"></script>
+
+  <!-- most popular datasets -->
+  <!-- fetch accept: application/json from /datsets/top -->
+  <h2>Recent datasets</h2>
+  <ul id="top-datasets">
+    
+  </ul>
+  <script>
+    function loadDatasets() {
+    fetch('/datasets/top', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        let topDatasets = document.getElementById('top-datasets');
+        topDatasets.innerHTML = '';
+        data.forEach(dataset => {
+          let li = document.createElement('li');
+          let a = document.createElement('a');
+          let p = document.createElement('p');
+          a.href = `/datasets/${dataset.id}`;
+          a.innerText = dataset.filename;
+          p.innerText = dataset.desc;
+          li.appendChild(a);
+          li.appendChild(p);
+          topDatasets.appendChild(li);
+        });
+      });
+    }
+    loadDatasets();
+    setInterval(loadDatasets, 5000);
+  </script>
   
   
 </body>

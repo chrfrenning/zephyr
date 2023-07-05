@@ -1,4 +1,4 @@
-name: Build container and deploy server to Azure
+name: Deploy server to Azure
 
 env:
   AZURE_WEBAPP_NAME: vkrjjzaur

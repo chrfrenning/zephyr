@@ -149,6 +149,38 @@ def createUploadUriWithToken(storageAccountName, storageAccountKey):
     # compose full url with token
     return blobName, f'https://{storageAccountName}.blob.core.windows.net/{getContainerNameForUploads()}/{blobName}?{sasToken}'
 
+def listAllDatasets():
+    account_name, account_key = getStorageAccountUrlAndKey()
+    # get all records from the datasets table
+    table_name = getTableNameForDatasetRecords()
+    connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+    table_client = TableClient.from_connection_string(connection_string, table_name)
+    entities = table_client.list_entities()
+    
+    # pick only the ones with status='complete'
+    # return only RowKey, filename, userId
+    return [{'id':entity['RowKey'],'filename':entity['filename'],'userId':entity['userId'],'desc':'This is a static description of a dataset with points for each observation and statistical significance that can lead to conclusions without bias and visually interesting representations.'} for entity in entities if entity['status'] == 'pending']
+
+
+@app.route('/datasets', methods=['GET'])
+def datasets():
+    # if accept header is only json, return json
+    accept_header = request.headers.get('Accept')
+    if accept_header is not None and accept_header == 'application/json':
+        # Get all datasets from the datasets table
+        datasets = listAllDatasets()
+
+        # Return the datasets as json
+        return jsonify(datasets)
+    else:
+        # Return the datasets as html
+        return render_template('datasets.html', datasets=listAllDatasets())
+
+@app.route('/datasets/top', methods=['GET'])
+def top_datasets():
+    return datasets()
+
+
 
 if __name__ == "__main__":
     app.run(debug = True, host = "0.0.0.0", port = 3000)

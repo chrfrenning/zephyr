@@ -1,4 +1,4 @@
-name: Build container and deploy worker to Azure
+name: Deploy worker to Azure
 
 env:
   AZURE_WEBAPP_NAME: vkrjjzaur

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ dataset.name }} ({{ dataset.desc }}) - Zephyr/1.0</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/script.js"></script>
+</head>
+
+<body>
+  <img src="/static/gfx/logo.jpg" alt="Zephyr Logo" id="logo">
+  <h1>{{ dataset.name }}</h1>
+  <h3>{{ dataset.desc }} </h3>
+
+  User: {{ dataset.uname }} <br>
+  Date: {{ dataset.date }} <br>
+  Tags: {{ dataset.tags }} <br>
+
+  <a href="{{ download_uri }}">Download</a> <br>
+  
+</body>

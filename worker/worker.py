@@ -7,6 +7,9 @@ import subprocess
 import base64
 import numpy as np
 from datetime import datetime, timedelta
+import numpy as np
+import pandas as pd
+from ydata_profiling import ProfileReport
 
 from azure.storage.blob import (
     BlobServiceClient,
@@ -35,7 +38,8 @@ def get_message_from_queue(account_name: str, account_key: str, queue_name: str)
     queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
     queue_client = queue_service_client.get_queue_client(queue_name)
     # Peek at messages in the queue
-    messages = queue_client.peek_messages(max_messages=10)
+    messages = queue_client.peek_messages(max_messages=10) 
+    # TODO: actual dequeue and delete if successful
 
     content = []
     for peeked_message in messages:
@@ -135,8 +139,18 @@ def process_blob(metadata_id, blob_id, bloburi):
     container_name = get_container_name_for_uploads()
     download_path = f'/tmp/{blob_id}'
     download_blob(account_name, account_key, container_name, metadata_id, blob_id, download_path)
+    # what type of file
+    extension = metadata['filename'].split('.')[-1]
+    # if csv
+    if extension == 'csv':
+        # load into dataframe
+        df = pd.read_csv(download_path)
+        #df = pd.DataFrame(np.random.rand(100, 5), columns=["a", "b", "c", "d", "e"])
+        profile = ProfileReport(df, title="Profiling Report")
+        #print(profile.to_json())
+        profile.to_file(f'/tmp/{metadata_id}.html')
+
     
-    # run the model
     # upload the results
     # update the metadata to status=complete
     #metadata['status'] = 'complete'

@@ -16,8 +16,9 @@
       console.log(data);
       // display the dataset
       // pick out the svg from scatter/a and display in the chart div
-      var svg = data['scatter']['a']['a'];
-      console.log(svg);
+      variable1 = Object.keys(data['scatter'])[0];
+      variable2 = Object.keys(data['scatter'])[1];
+      var svg = data['scatter'][variable1][variable2];
       document.getElementById("chart").innerHTML = svg;
 
     });

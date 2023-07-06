@@ -1,0 +1,90 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "defaultValue": "swedencentral",
+            "type": "String"
+        },
+        "environment_name": {
+            "type": "String"
+        },
+        "queueconnection": {
+            "type": "secureString"
+        }
+    },
+    "variables": {},
+    "resources": [
+    {
+        "name": "queuereader",
+        "type": "Microsoft.App/containerApps",
+        "apiVersion": "2022-03-01",
+        "kind": "containerapp",
+        "location": "[parameters('location')]",
+        "properties": {
+            "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('environment_name'))]",
+            "configuration": {
+                "activeRevisionsMode": "single",
+                "secrets": [
+                {
+                    "name": "queueconnection",
+                    "value": "[parameters('queueconnection')]"
+                },
+                {
+                    "name": "zephyr-storage-name",
+                    "value": "vkrjjzaur"
+                },
+                {
+                    "name": "zephyr-storage-key",
+                    "value": "LizAgHoggw7AxvvOkE8Ltiz8Ogq2vH+uXqe1SG6d7rDOihgwAb7TswHhrIvXwNTa8K+TihoB/PkP+AStbaRYtg=="
+                },
+                {
+                    "name": "zephyr-container-name",
+                    "value": "original-data"
+                }
+                ]
+            },
+            "template": {
+                "containers": [
+                    {
+                        "image": "zephyr.azurecr.io/zephyr-worker:latest",
+                        "name": "zephyr-worker",
+                        "env": [
+                            {
+                                "name": "ZEPHYR_STORAGE_NAME",
+                                "secretRef": "zephyr-storage-name"
+                            },
+                            {
+                                "name": "ZEPHYR_STORAGE_KEY",
+                                "secretRef": "zephyr-storage-key"
+                            },
+                            {
+                                "name": "ZEPHYR_CONTAINER_NAME",
+                                "secretRef": "zephyr-container-name"
+                            }
+                        ]
+                    }
+                ],
+                "scale": {
+                    "minReplicas": 1,
+                    "maxReplicas": 10,
+                    "rules": [
+                        {
+                            "name": "myqueuerule",
+                            "azureQueue": {
+                                "queueName": "ingestion",
+                                "queueLength": 100,
+                                "auth": [
+                                    {
+                                        "secretRef": "queueconnection",
+                                        "triggerParameter": "connection"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }]
+}

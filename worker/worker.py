@@ -1,6 +1,7 @@
 import os
 import json
 import copy
+import time
 import uuid
 import shortuuid
 import subprocess
@@ -34,7 +35,7 @@ def get_storage_account_url_and_key():
     storageAccountKey = os.environ.get('ZEPHYR_STORAGE_KEY')
     return storageAccountName, storageAccountKey
 
-def get_message_from_queue(account_name: str, account_key: str, queue_name: str):
+def peek_messages_from_queue(account_name: str, account_key: str, queue_name: str):
     queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
     queue_client = queue_service_client.get_queue_client(queue_name)
     # Peek at messages in the queue
@@ -60,17 +61,36 @@ def subject_to_ids(subject):
 
 def process_queue():
     account_name, account_key = get_storage_account_url_and_key()
-    # retrieve a message from the 'ingestion' queue
-    # if there is a message, process it
-    msg = get_message_from_queue(account_name, account_key, getIngestionQueueName())
-    for m in msg:
-        decoded_message = base64.b64decode(m).decode('utf-8')
-        data = json.loads(decoded_message)
-        if data['eventType'] == 'Microsoft.Storage.BlobCreated':
-            bloburi = data['subject']
-            blob_id, metadata_id = subject_to_ids(bloburi)
-            blob_url = subject_to_blob_uri(bloburi)
-            process_blob(metadata_id, blob_id, blob_url)
+    queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
+    queue_client = queue_service_client.get_queue_client(getIngestionQueueName())
+    
+    # Peek at messages in the queue
+    time_wait = 0.5
+    wait_cycles = 5
+    wait_c = 0
+    while True:
+        msg = queue_client.receive_message(visibility_timeout=300)
+        # if there is a message, process it
+        if msg:
+            print(msg)
+            decoded_message = base64.b64decode(msg.content).decode('utf-8')
+            data = json.loads(decoded_message)
+            if data['eventType'] == 'Microsoft.Storage.BlobCreated':
+                bloburi = data['subject']
+                blob_id, metadata_id = subject_to_ids(bloburi)
+                if not '.' in blob_id:
+                    blob_url = subject_to_blob_uri(bloburi)
+                    process_blob(metadata_id, blob_id, blob_url)
+            # delete the message from the queue
+            queue_client.delete_message(msg)
+        else:
+            # no more messages to process, let the container stop
+            print('No more messages, waiting a bit')
+            time.sleep(time_wait)
+            wait_c += 1
+            if wait_c > wait_cycles:
+                print('No more messages to process, exiting')
+                break
 
 def download_blob(account_name: str, account_key: str, container_name: str, metadata_id : str, blob_name: str, download_path: str):
     blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
@@ -149,11 +169,15 @@ def process_blob(metadata_id, blob_id, bloburi):
         profile = ProfileReport(df, title="Profiling Report")
         #print(profile.to_json())
         profile.to_file(f'/tmp/{metadata_id}.html')
+        profile.to_file(f'/tmp/{metadata_id}.json')
         # upload file to blob storage
         blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
         blob_client = blob_service_client.get_blob_client(container_name, f'{metadata_id}/ydata-report.html')
         with open(f'/tmp/{metadata_id}.html', "rb") as data:
-            blob_client.upload_blob(data)
+            blob_client.upload_blob(data, overwrite=True)
+        blob_client = blob_service_client.get_blob_client(container_name, f'{metadata_id}/ydata-report.json')
+        with open(f'/tmp/{metadata_id}.json', "rb") as data:
+            blob_client.upload_blob(data, overwrite=True)
     
     # upload the results
     # update the metadata to status=complete

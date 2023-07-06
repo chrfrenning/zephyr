@@ -19,4 +19,37 @@
   <a href="{{ report_uri }}">Report</a> <br>
   <a href="{{ download_uri }}">Download</a> <br>
   
+  <a href="" id="delete">Delete</a> <br>
+  <script>
+    document.getElementById("delete").onclick = function() {
+      console.log("delete")
+      var r = confirm("Are you sure you want to delete this dataset?");
+      if (r == true) {
+        // call /datasets/id with DELETE method using fetch
+        var url = '/datasets/{{ dataset.id }}';
+        fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: '{{ dataset.id }}'
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+        })
+        .catch((error) => {
+          console.log('Error:', error);
+        });
+
+        // go to /datasets
+        rnd = Math.random();
+        window.location.href = "/datasets?rnd=" + rnd;
+      }
+      return(false);
+    }
+  </script>
+  
 </body>

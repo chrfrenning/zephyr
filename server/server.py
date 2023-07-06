@@ -210,7 +210,7 @@ def list_all_datasets():
         'date'      : entity['date'],
         'tags'      : entity['tags'],
         'blob_id'   : entity['blobId'],
-        } for entity in entities ]#if entity['status'] == 'pending']
+        } for entity in entities if entity['status'] != 'deleted' ]
 
 
 @app.route('/datasets', methods=['GET'])
@@ -249,6 +249,30 @@ def dataset(id):
         print(download_uri)
         return render_template('dataset.html', dataset=dataset, download_uri=f'/datasets/{id}.raw', report_uri=f'/datasets/{id}.report')
     
+def update_azure_table(storage_account_name, account_key, table_name, entity):
+    # Connect to the table client
+    connection_string = f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+    table_client = TableClient.from_connection_string(connection_string, table_name)
+
+    # Insert the entity
+    table_client.update_entity(mode='merge', entity=entity)
+
+@app.route('/datasets/<id>', methods=['DELETE'])
+def delete_dataset(id):
+    datasets = list_all_datasets()
+    dataset = next((dataset for dataset in datasets if dataset['id'] == id), None)
+    if dataset is None:
+        abort(404, f"Dataset with id {id} not found")
+    # TODO: Delete ydata-report.
+    # TODO: Delete dataset metadata.
+    # TODO: Delete dataset blob.
+    # update status to deleted
+    dataset['status'] = 'deleted'
+    dataset['PartitionKey'] = get_partition_key_from_metadata_id(id)
+    dataset['RowKey'] = id
+    update_azure_table(*get_storage_account_url_and_key(), get_tablename_for_dataset_records(), dataset)
+    return jsonify({ 'status': 'ok' })
+    
 @app.route('/datasets/<id>.raw', methods=['GET'])
 def dataset_raw(id):
     datasets = list_all_datasets()
@@ -257,6 +281,8 @@ def dataset_raw(id):
         abort(404, f"Dataset with id {id} not found")
     download_uri = create_download_uri_with_sas(*get_storage_account_url_and_key(), dataset['blob_id'])
     return redirect(download_uri, code=302)
+
+# SUGGESTION: Converters, return data as CSV, JSON, Excel, etc.
     
 @app.route('/datasets/<id>.report', methods=['GET'])
 def dataset_report(id):
@@ -269,6 +295,21 @@ def dataset_report(id):
     container_name = get_container_name_for_uploads()
     blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
     blob_client = blob_service_client.get_blob_client(container_name, f'{id}/ydata-report.html')
+    blob_content = blob_client.download_blob().readall()
+    # return blob_content to client
+    return blob_content
+
+@app.route('/datasets/<id>.report.json', methods=['GET'])
+def dataset_report_json(id):
+    datasets = list_all_datasets()
+    dataset = next((dataset for dataset in datasets if dataset['id'] == id), None)
+    if dataset is None:
+        abort(404, f"Dataset with id {id} not found")
+    # Download ydata-report.html from blob storage
+    account_name, account_key = get_storage_account_url_and_key()
+    container_name = get_container_name_for_uploads()
+    blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
+    blob_client = blob_service_client.get_blob_client(container_name, f'{id}/ydata-report.json')
     blob_content = blob_client.download_blob().readall()
     # return blob_content to client
     return blob_content

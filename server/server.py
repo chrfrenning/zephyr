@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, abort, send_file, render_template
+from flask import Flask, jsonify, request, abort, send_file, render_template, redirect
 
 import os
 import json
@@ -247,8 +247,31 @@ def dataset(id):
         # Return the datasets as html
         download_uri = create_download_uri_with_sas(*get_storage_account_url_and_key(), dataset['blob_id'])
         print(download_uri)
-        return render_template('dataset.html', dataset=dataset, download_uri=download_uri)
-
+        return render_template('dataset.html', dataset=dataset, download_uri=f'/datasets/{id}.raw', report_uri=f'/datasets/{id}.report')
+    
+@app.route('/datasets/<id>.raw', methods=['GET'])
+def dataset_raw(id):
+    datasets = list_all_datasets()
+    dataset = next((dataset for dataset in datasets if dataset['id'] == id), None)
+    if dataset is None:
+        abort(404, f"Dataset with id {id} not found")
+    download_uri = create_download_uri_with_sas(*get_storage_account_url_and_key(), dataset['blob_id'])
+    return redirect(download_uri, code=302)
+    
+@app.route('/datasets/<id>.report', methods=['GET'])
+def dataset_report(id):
+    datasets = list_all_datasets()
+    dataset = next((dataset for dataset in datasets if dataset['id'] == id), None)
+    if dataset is None:
+        abort(404, f"Dataset with id {id} not found")
+    # Download ydata-report.html from blob storage
+    account_name, account_key = get_storage_account_url_and_key()
+    container_name = get_container_name_for_uploads()
+    blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
+    blob_client = blob_service_client.get_blob_client(container_name, f'{id}/ydata-report.html')
+    blob_content = blob_client.download_blob().readall()
+    # return blob_content to client
+    return blob_content
 
 
 if __name__ == "__main__":

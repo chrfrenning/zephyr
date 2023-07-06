@@ -149,12 +149,16 @@ def process_blob(metadata_id, blob_id, bloburi):
         profile = ProfileReport(df, title="Profiling Report")
         #print(profile.to_json())
         profile.to_file(f'/tmp/{metadata_id}.html')
-
+        # upload file to blob storage
+        blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
+        blob_client = blob_service_client.get_blob_client(container_name, f'{metadata_id}/ydata-report.html')
+        with open(f'/tmp/{metadata_id}.html', "rb") as data:
+            blob_client.upload_blob(data)
     
     # upload the results
     # update the metadata to status=complete
-    #metadata['status'] = 'complete'
-    #update_azure_table(account_name, get_table_name_for_dataset_records(), account_key, metadata)
+    metadata['status'] = 'complete'
+    update_azure_table(account_name, get_table_name_for_dataset_records(), account_key, metadata)
     
     
 

@@ -246,8 +246,9 @@ def dataset(id):
     else:
         # Return the datasets as html
         download_uri = create_download_uri_with_sas(*get_storage_account_url_and_key(), dataset['blob_id'])
-        print(download_uri)
-        return render_template('dataset.html', dataset=dataset, download_uri=f'/datasets/{id}.raw', report_uri=f'/datasets/{id}.report')
+        report_json_uri = create_download_uri_with_sas(*get_storage_account_url_and_key(), dataset['id'] + '/ydata-report.json')
+        print(report_json_uri)
+        return render_template('dataset.html', dataset=dataset, download_uri=f'/datasets/{id}.raw', report_uri=f'/datasets/{id}.report', data_uri=report_json_uri)
     
 def update_azure_table(storage_account_name, account_key, table_name, entity):
     # Connect to the table client
@@ -312,7 +313,7 @@ def dataset_report_json(id):
     blob_client = blob_service_client.get_blob_client(container_name, f'{id}/ydata-report.json')
     blob_content = blob_client.download_blob().readall()
     # return blob_content to client
-    return blob_content
+    return blob_content, 200, {'Content-Type': 'application/json'}
 
 
 if __name__ == "__main__":

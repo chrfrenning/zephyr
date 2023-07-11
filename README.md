@@ -11,10 +11,15 @@ This will set up and configure a complete environment in your Azure subscription
 ```
   # install azure cli tools
   # curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-  # login with az login and set your preferred subscription with az account set
+
+  # login with az login
+  # az login
+
+  # if more than one subscription, set your preferred one
+  # az account set -n <name_or_id>
+
   # then...
   cd ./deploy
-  pip install -r requirements.txt
   ./deploy
 ```
 
@@ -24,6 +29,7 @@ After making changes to the server or worker, push the latest version to cloud b
 
 ```
   cd ./deploy
+  pip install -r requirements.txt
   ./push
 ```
 

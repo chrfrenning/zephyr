@@ -6,7 +6,7 @@ Zephyr is an AI-driven data science service.
 
 # How to deploy and run in Azure
 
-This will set up and configure a complete environment in your Azure subscription.
+This will set up and configure a complete environment in your Azure subscription. The far easiest way is to use a GitHub codespace (you must install the az cli) or the Azure Cloud Shell (you must then git clone this repo).
 
 ```
   # install azure cli tools

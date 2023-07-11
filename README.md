@@ -92,6 +92,7 @@ Fork and open a PR!
 
 # Todo list
 
-- [ ] Create a scaffold for this stuff
+- [x] Create a scaffold for this stuff
 - [x] Deployment to Azure
 - [ ] Smooth local development and debugging
+- [ ] Deploy a log analytics workspace and config containers to write logs there

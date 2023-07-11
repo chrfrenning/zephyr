@@ -19,6 +19,27 @@ Direct:
 ```
 
 
+# How to deploy
+
+```
+  # install azure cli tools
+  # curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+  # login with az login and set your preferred subscription with az account set
+  # then...
+  cd ./deploy
+  pip install -r requirements.txt
+  ./deploy
+```
+
+Note! configuration.toml will contain secrets; ensure you do not commit this file and remove it safely (it is needed for debugging, pushing updates, etc while in development so keep your dev and prod environments separate).
+
+After making changes to the server or worker, push the latest version to cloud by:
+
+```
+  cd ./deploy
+  ./push
+```
+
 
 # How to contribute
 

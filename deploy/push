@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Build app containers and push to cloud infrastructure
+# Note: Run deploy.sh first to setup the infrastructure needed
+
+
+
+# Get settings from configuration.toml
+
+rgn=$(./getsetting instance_name)
+registryUrl=$(./getsetting registry_url)
+registryUsername=$(./getsetting registry_username)
+registryPassword=$(./getsetting registry_password)
+
+
+
+# Build server
+
+echo -e "Building and pushing server container image..."
+az acr build --registry $rgn --image zephyr-server:latest ../server/
+
+
+
+# Build worker
+
+echo -e "Building and pushing worker container image..."
+az acr build --registry $rgn --image zephyr-worker:latest ../worker

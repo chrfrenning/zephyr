@@ -1,0 +1,10 @@
+#!/bin/bash
+
+export instanceName=$(./getsetting instance_name)
+export rgn=$(./getsetting resource_group)
+export location=$(./getsetting location)
+export storageKey=$(./getsetting storage_key)
+export subscriptionId=$(./getsetting subscription_id)
+export registryUrl=$(./getsetting registry_url)
+export registryUsername=$(./getsetting registry_username)
+export registryPassword=$(./getsetting registry_password)

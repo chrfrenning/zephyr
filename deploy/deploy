@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Setup script for Zephyr cloud infrastructure
+
+
+
+# Let's get this thing started
+
+echo -e "Starting setup of Zephyr/1.0 at $(date)."
+echo -e "Version: 2023-07-10a"
+
+rnd=$(cut -c1-6 /proc/sys/kernel/random/uuid)
+rgn=zephyr00$rnd
+instanceName=zephyr00$rnd
+location=swedencentral
+
+
+
+# Some prepwork to ensure we can run
+
+az extension add --name containerapp --upgrade
+az provider register --namespace Microsoft.Storage
+az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+
+
+
+# Create resource group
+
+az group create --location $location --name $rgn --tags "application=Zephyr" "deployedby=deploy.sh" "environment=Development"
+
+# Save resource group name for app
+echo "instance_name = \"$rgn\"" > ./configuration.toml
+echo "resource_group = \"$rgn\"" >> ./configuration.toml
+
+subscriptionId=$(az account show | jq -r ".id")
+echo "subscription_id = \"$subscriptionId\"" >> ./configuration.toml
+
+
+
+# Create storage account
+
+echo -e "Creating storage..."
+az storage account create -n $rgn -g $rgn --sku "Standard_LRS" --location $location --kind "StorageV2" --access-tier "Hot" --allow-blob-public-access false --allow-shared-key-access true --https-only true
+
+storageKey=$(az storage account keys list -n $rgn -g $rgn --query "[?keyName=='key1'].value" -o tsv)
+echo "storage_key = \"$storageKey\"" >> ./configuration.toml
+
+az storage table create --account-name $rgn --name "datasets" --account-key $storageKey
+az storage queue create --account-name $rgn --name "ingestion" --account-key $storageKey
+
+az storage container create --account-name $rgn --name "original-data" --account-key $storageKey
+az storage cors add --methods "GET,POST,PUT,PATCH,DELETE,HEAD,MERGE,OPTIONS" --origins "*" --allowed-headers "*" --exposed-headers "*" --max-age 3600 --services b --account-name $rgn --account-key $storageKey
+
+
+
+# Hook up storage events to the extract-queue
+
+echo -e "Hooking up file detection events..."
+
+storageId=$(az storage account show -n $rgn -g $rgn --query id --output tsv)
+queueId=$storageId/queueservices/default/queues/ingestion # note same as above
+subjectFilter="/blobServices/default/containers/original-data/blobs/" # note same as above
+az eventgrid event-subscription create --name "new-datasets-to-ingestion-queue" --source-resource-id $storageId --subject-begins-with $subjectFilter --endpoint-type "storagequeue" --endpoint $queueId
+
+
+
+# Setup container registry for app images
+
+echo -e "Creating container registry..."
+
+az acr create -g $rgn --name $rgn --sku Basic
+registryUrl=$(az acr show --n $rgn -g $rgn --query "loginServer" --output tsv)
+echo "registry_url = \"$registryUrl\"" >> ./configuration.toml
+
+az acr update -n $rgn --admin-enabled
+registryUsername=$(az acr credential show -n $rgn --query username --output tsv)
+registryPassword=$(az acr credential show -n $rgn --query passwords[?name==\'password\'].value --output tsv)
+
+echo "registry_username = \"$registryUsername\"" >> ./configuration.toml
+echo "registry_password = \"$registryPassword\"" >> ./configuration.toml
+
+
+
+# Create container apps environment
+
+az containerapp env create -n $rgn -g $rgn -l $location --logs-destination none
+
+
+
+# Build + deploy server
+
+echo -e "Building and pushing server container image..."
+az acr build --registry $rgn --image zephyr-server:latest ../server/
+
+az containerapp create -n $instanceName-server -g $rgn --environment $instanceName --registry-server $registryUrl --registry-username $registryUsername --registry-password $registryPassword --termination-grace-period 30 --secrets storage-name="$instanceName" storage-key="$storageKey" --container-name zephyr-server --cpu 0.5 --memory 1.0 --env-vars ZEPHYR_STORAGE_NAME=secretref:storage-name ZEPHYR_STORAGE_KEY=secretref:storage-key --image $registryUrl/zephyr-server:latest --ingress external --target-port 3000 --transport auto --max-replicas 10 --min-replicas 0 
+
+
+
+# Build + deploy worker
+
+echo -e "Building and pushing server container image..."
+az acr build --registry $rgn --image zephyr-worker:latest ../worker/
+
+az containerapp create -n $instanceName-worker -g $rgn --environment $instanceName --registry-server $registryUrl --registry-username $registryUsername --registry-password $registryPassword --termination-grace-period 360 --secrets storage-name="$instanceName" storage-key="$storageKey" storage-connection-string="DefaultEndpointsProtocol=https;AccountName=$instanceName;AccountKey=$storageKey;EndpointSuffix=core.windows.net" --container-name zephyr-worker --cpu 1.0 --memory 2.0 --env-vars ZEPHYR_STORAGE_NAME=secretref:storage-name ZEPHYR_STORAGE_KEY=secretref:storage-key --image $registryUrl/zephyr-worker:latest --max-replicas 10 --min-replicas 0 --scale-rule-name queue-based-autoscaling --scale-rule-type azure-queue --scale-rule-metadata "accountName=$rgn cloud=AzurePublicCloud queueLength=5 queueName=ingestion" --scale-rule-auth connection=storage-connection-string

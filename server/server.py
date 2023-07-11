@@ -315,6 +315,44 @@ def dataset_report_json(id):
     # return blob_content to client
     return blob_content, 200, {'Content-Type': 'application/json'}
 
+def get_tablename_for_waitlist():
+    return 'waitlist'
+
+def validate_email(email):
+    return True
+
+@app.route('/waitlist', methods=['POST'])
+def add_to_waitlist():
+    # get firstname and email from request body
+    firstname = request.form.get('firstname')
+    email = request.form.get('email')
+    # check if any empty then fail
+    if firstname is None or email is None:
+        abort(400, "firstname and email are required")
+    # check if email is valid
+    if not validate_email(email):
+        abort(400, "email is invalid")
+    # add to waitlist table in azure storage
+    account_name, account_key = get_storage_account_url_and_key()
+    table_name = get_tablename_for_waitlist()
+    # Connect to the table client
+    connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+    table_client = TableClient.from_connection_string(connection_string, table_name)
+    # Insert the entity
+    table_client.upsert_entity(mode='merge', entity={
+        'PartitionKey': 'waitlist', 
+        'RowKey': email, 
+        'firstname': firstname, 
+        'email': email,
+        'status': 'pending',
+        'reg_time': datetime.now().isoformat()
+        })
+    # count number of rows in waitlist table
+    count = 0
+    for entity in table_client.query_entities(query_filter="PartitionKey eq 'waitlist'"):
+        count += 1
+    # return count to client
+    return jsonify({ 'count': count })
 
 if __name__ == "__main__":
     app.run(debug = True, host = "0.0.0.0", port = 3000)

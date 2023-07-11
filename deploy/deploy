@@ -47,6 +47,7 @@ storageKey=$(az storage account keys list -n $rgn -g $rgn --query "[?keyName=='k
 echo "storage_key = \"$storageKey\"" >> ./configuration.toml
 
 az storage table create --account-name $rgn --name "datasets" --account-key $storageKey
+az storage table create --account-name $rgn --name "waitlist" --account-key $storageKey
 az storage queue create --account-name $rgn --name "ingestion" --account-key $storageKey
 
 az storage container create --account-name $rgn --name "original-data" --account-key $storageKey

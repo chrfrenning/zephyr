@@ -5,13 +5,12 @@
 # usage: getsetting.py <setting>
 # reads configuration.toml file and returns the value of the setting
 
-#import os
+import os
 import sys
 import toml
 
 try:
-    #configuration_file_name = os.path.dirname(os.path.abspath(__file__)) + "./configuration.toml"
-    configuration_file_name = "configuration.toml"
+    configuration_file_name = os.path.dirname(os.path.abspath(__file__)) + "/configuration.toml"
     configuration = toml.load(configuration_file_name)
 
     if ( len(sys.argv) < 2 ):

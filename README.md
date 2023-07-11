@@ -1,25 +1,12 @@
 # Zephyr/1.0
 
-Description of this stuff here for people finding us on GitHub or wanting to contribute.
+Zephyr is an AI-driven data science service.
 
 
 
-# How to run
+# How to deploy and run in Azure
 
-Preferred, requires docker:
-
-```
-  cd ./server && runlocal.sh
-```
-
-Direct:
-
-```
-  cd ./server && pip install -r requirements.txt && python3 server.py
-```
-
-
-# How to deploy
+This will set up and configure a complete environment in your Azure subscription.
 
 ```
   # install azure cli tools
@@ -41,6 +28,62 @@ After making changes to the server or worker, push the latest version to cloud b
 ```
 
 
+
+# How to run the (web) server locally
+
+The server handles ui and user interactions. It contains both the api
+and the frontend and uses Flask and Ninja templates (see static and templates folders).
+
+1. Deploy to Azure (see above, you need the storage account)
+1. You have two options, direct or via docker (preferred)
+
+## Run with docker
+
+```
+  cd ./server
+  . ../deploy/setenv
+  ./runlocal.sh
+```
+
+## Run directly with Python
+
+```
+  cd ./server
+  pip install -r requirements.txt
+  ../deploy/setenv
+  python3 server.py
+```
+
+
+
+# How to run the worker locally
+
+The worker processes datasets after they are uploaded to an azure blob. The upload triggers and event grid notification that posts a message to the "ingestion" queue in the storage account, which is consumed by the worker(s).
+
+To run the worker locally, you must first delete the worker in azure, otherwise they will compete to get new messages. You can redeploy the worker by copying the deployment code from the ./deploy/deploy script.
+
+1. Deploy to Azure (see above, you need the storage account)
+1. Delete the worker in Azure
+1. You have two options, direct or via docker (preferred)
+
+## Run with docker
+
+```
+  cd ./worker
+  . ../deploy/setenv
+  ./runlocal.sh
+```
+
+## Run directly with Python
+
+```
+  cd ./worker
+  pip install -r requirements.txt
+  ../deploy/setenv
+  python3 worker.py
+```
+
+
 # How to contribute
 
 Fork and open a PR!
@@ -50,16 +93,5 @@ Fork and open a PR!
 # Todo list
 
 - [ ] Create a scaffold for this stuff
-
-
-
-# Stuff to get this running
-
-```
-az extension add --name containerapp --upgrade
-az provider register --namespace Microsoft.App
-az provider register --namespace Microsoft.OperationalInsights
-
-az deployment group create --resource-group Zephyr-0.1 --template-file queue.json --parameters environment_name=vkrjjzaur queueconnection=$qcs location=swedencentral
-
-```
+- [x] Deployment to Azure
+- [ ] Smooth local development and debugging

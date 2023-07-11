@@ -8,3 +8,7 @@ export subscriptionId=$(./getsetting subscription_id)
 export registryUrl=$(./getsetting registry_url)
 export registryUsername=$(./getsetting registry_username)
 export registryPassword=$(./getsetting registry_password)
+
+# for local docker, dev, and debug
+export ZEPHYR_STORAGE_NAME=$instanceName
+export ZEPHYR_STORAGE_KEY=$storageKey

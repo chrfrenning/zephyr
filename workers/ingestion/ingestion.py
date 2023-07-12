@@ -81,6 +81,10 @@ def process_queue():
                 if not '.' in blob_id:
                     blob_url = subject_to_blob_uri(bloburi)
                     process_blob(metadata_id, blob_id, blob_url)
+                else:
+                    print('Ignoring file with extension')
+            else:
+                print('Unknown event type')
             # delete the message from the queue
             queue_client.delete_message(msg)
         else:

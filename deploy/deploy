@@ -16,12 +16,22 @@ location=swedencentral
 
 
 
+# We need some input from the user
+echo "We need some input from you to get started."
+read -p "OpenAI organization: " openai_org
+read -p "OpenAI API key: " openai_key
+read -p "OpenAI model: " openai_model
+echo "Thanks."
+
+
+
 # Some prepwork to ensure we can run
 
 az extension add --name containerapp --upgrade
 az provider register --namespace Microsoft.Storage
 az provider register --namespace Microsoft.App
 az provider register --namespace Microsoft.OperationalInsights
+az provider register --namespace Microsoft.EventGrid
 
 
 
@@ -32,6 +42,10 @@ az group create --location $location --name $rgn --tags "application=Zephyr" "de
 # Save resource group name for app
 echo "instance_name = \"$rgn\"" > ./configuration.toml
 echo "resource_group = \"$rgn\"" >> ./configuration.toml
+echo "location = \"$location\"" >> ./configuration.toml
+echo "openai_org = \"$openai_org\"" >> ./configuration.toml
+echo "openai_key = \"$openai_key\"" >> ./configuration.toml
+echo "openai_model = \"$openai_model\"" >> ./configuration.toml
 
 subscriptionId=$(az account show | jq -r ".id")
 echo "subscription_id = \"$subscriptionId\"" >> ./configuration.toml
@@ -49,6 +63,7 @@ echo "storage_key = \"$storageKey\"" >> ./configuration.toml
 az storage table create --account-name $rgn --name "datasets" --account-key $storageKey
 az storage table create --account-name $rgn --name "waitlist" --account-key $storageKey
 az storage queue create --account-name $rgn --name "ingestion" --account-key $storageKey
+az storage queue create --account-name $rgn --name "scripthost" --account-key $storageKey
 
 az storage container create --account-name $rgn --name "original-data" --account-key $storageKey
 az storage cors add --methods "GET,POST,PUT,PATCH,DELETE,HEAD,MERGE,OPTIONS" --origins "*" --allowed-headers "*" --exposed-headers "*" --max-age 3600 --services b --account-name $rgn --account-key $storageKey
@@ -98,9 +113,18 @@ az containerapp create -n $instanceName-server -g $rgn --environment $instanceNa
 
 
 
-# Build + deploy worker
+# Build + deploy ingestion worker
 
-echo -e "Building and pushing server container image..."
-az acr build --registry $rgn --image zephyr-worker:latest ../worker/
+echo -e "Building and pushing ingestion container image..."
+az acr build --registry $rgn --image zephyr-ingestion:latest ../workers/ingestion/
 
-az containerapp create -n $instanceName-worker -g $rgn --environment $instanceName --registry-server $registryUrl --registry-username $registryUsername --registry-password $registryPassword --termination-grace-period 360 --secrets storage-name="$instanceName" storage-key="$storageKey" storage-connection-string="DefaultEndpointsProtocol=https;AccountName=$instanceName;AccountKey=$storageKey;EndpointSuffix=core.windows.net" --container-name zephyr-worker --cpu 1.0 --memory 2.0 --env-vars ZEPHYR_STORAGE_NAME=secretref:storage-name ZEPHYR_STORAGE_KEY=secretref:storage-key --image $registryUrl/zephyr-worker:latest --max-replicas 10 --min-replicas 0 --scale-rule-name queue-based-autoscaling --scale-rule-type azure-queue --scale-rule-metadata "accountName=$rgn cloud=AzurePublicCloud queueLength=5 queueName=ingestion" --scale-rule-auth connection=storage-connection-string
+az containerapp create -n $instanceName-worker -g $rgn --environment $instanceName --registry-server $registryUrl --registry-username $registryUsername --registry-password $registryPassword --termination-grace-period 360 --secrets storage-name="$instanceName" storage-key="$storageKey" storage-connection-string="DefaultEndpointsProtocol=https;AccountName=$instanceName;AccountKey=$storageKey;EndpointSuffix=core.windows.net" openai-org="$openai_org" openai-key="$openai_key" --container-name zephyr-ingestion --cpu 1.0 --memory 2.0 --env-vars ZEPHYR_STORAGE_NAME=secretref:storage-name ZEPHYR_STORAGE_KEY=secretref:storage-key ZEPHYR_OPENAI_ORG=secretref:openai-org ZEPHYR_OPENAI_KEY=secretref:openai-key ZEPHYR_OPENAI_MODEL="$openai_model" --image $registryUrl/zephyr-ingestion:latest --max-replicas 10 --min-replicas 0 --scale-rule-name queue-based-autoscaling --scale-rule-type azure-queue --scale-rule-metadata "accountName=$rgn cloud=AzurePublicCloud queueLength=5 queueName=ingestion" --scale-rule-auth connection=storage-connection-string
+
+
+
+# Build + deploy scripthost worker
+
+echo -e "Building and pushing scripthost container image..."
+az acr build --registry $rgn --image zephyr-scripthost:latest ../workers/scripthost/
+
+az containerapp create -n $instanceName-worker -g $rgn --environment $instanceName --registry-server $registryUrl --registry-username $registryUsername --registry-password $registryPassword --termination-grace-period 360 --secrets storage-name="$instanceName" storage-key="$storageKey" storage-connection-string="DefaultEndpointsProtocol=https;AccountName=$instanceName;AccountKey=$storageKey;EndpointSuffix=core.windows.net" --container-name zephyr-scripthost --cpu 1.0 --memory 2.0 --env-vars ZEPHYR_STORAGE_NAME=secretref:storage-name ZEPHYR_STORAGE_KEY=secretref:storage-key --image $registryUrl/zephyr-scripthost:latest --max-replicas 10 --min-replicas 0 --scale-rule-name queue-based-autoscaling --scale-rule-type azure-queue --scale-rule-metadata "accountName=$rgn cloud=AzurePublicCloud queueLength=5 queueName=scripthost" --scale-rule-auth connection=storage-connection-string

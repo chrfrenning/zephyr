@@ -52,10 +52,22 @@ echo "subscription_id = \"$subscriptionId\"" >> ./configuration.toml
 
 
 
+# Create log analytics workspace
+
+az monitor log-analytics workspace create -n $instanceName -g $rgn -l $location --retention-time 30
+
+logId=$(az monitor log-analytics workspace show -g $rgn -n $instanceName --query customerId --output tsv)
+echo "log_id = \"$logId\"" >> ./configuration.toml
+
+logKey=$(az monitor log-analytics workspace get-shared-keys -g $rgn -n $instanceName --query primarySharedKey --output tsv)
+echo "log_key = \"$logKey\"" >> ./configuration.toml
+
+
+
 # Create storage account
 
 echo -e "Creating storage..."
-az storage account create -n $rgn -g $rgn --sku "Standard_LRS" --location $location --kind "StorageV2" --access-tier "Hot" --allow-blob-public-access false --allow-shared-key-access true --https-only true
+az storage account create -n $instanceName -g $rgn --sku "Standard_LRS" --location $location --kind "StorageV2" --access-tier "Hot" --allow-blob-public-access false --allow-shared-key-access true --https-only true
 
 storageKey=$(az storage account keys list -n $rgn -g $rgn --query "[?keyName=='key1'].value" -o tsv)
 echo "storage_key = \"$storageKey\"" >> ./configuration.toml
@@ -74,7 +86,7 @@ az storage cors add --methods "GET,POST,PUT,PATCH,DELETE,HEAD,MERGE,OPTIONS" --o
 
 echo -e "Hooking up file detection events..."
 
-storageId=$(az storage account show -n $rgn -g $rgn --query id --output tsv)
+storageId=$(az storage account show -n $instanceName -g $rgn --query id --output tsv)
 queueId=$storageId/queueservices/default/queues/ingestion # note same as above
 subjectFilter="/blobServices/default/containers/original-data/blobs/" # note same as above
 az eventgrid event-subscription create --name "new-datasets-to-ingestion-queue" --source-resource-id $storageId --subject-begins-with $subjectFilter --endpoint-type "storagequeue" --endpoint $queueId
@@ -85,11 +97,11 @@ az eventgrid event-subscription create --name "new-datasets-to-ingestion-queue" 
 
 echo -e "Creating container registry..."
 
-az acr create -g $rgn --name $rgn --sku Basic
+az acr create -g $rgn --name $instanceName --sku Basic
 registryUrl=$(az acr show --n $rgn -g $rgn --query "loginServer" --output tsv)
 echo "registry_url = \"$registryUrl\"" >> ./configuration.toml
 
-az acr update -n $rgn --admin-enabled
+az acr update -n $instanceName --admin-enabled
 registryUsername=$(az acr credential show -n $rgn --query username --output tsv)
 registryPassword=$(az acr credential show -n $rgn --query passwords[?name==\'password\'].value --output tsv)
 
@@ -100,7 +112,7 @@ echo "registry_password = \"$registryPassword\"" >> ./configuration.toml
 
 # Create container apps environment
 
-az containerapp env create -n $rgn -g $rgn -l $location --logs-destination none
+az containerapp env create -n $instanceName -g $rgn -l $location --logs-destination log-analytics --logs-workspace-id $logId --logs-workspace-key $logKey
 
 
 

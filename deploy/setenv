@@ -12,6 +12,8 @@ export registryPassword=$(./getsetting registry_password)
 export openai_org=$(./getsetting openai_org)
 export openai_key=$(./getsetting openai_key)
 export openai_model=$(./getsetting openai_model)
+export logKey=$(./getsetting log_key)
+export LogId=$(./getsetting log_id)
 
 # for local docker, dev, and debug
 export ZEPHYR_STORAGE_NAME=$instanceName

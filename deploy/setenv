@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# for deployment scripts
 export instanceName=$(./getsetting instance_name)
 export rgn=$(./getsetting resource_group)
 export location=$(./getsetting location)
@@ -8,7 +9,13 @@ export subscriptionId=$(./getsetting subscription_id)
 export registryUrl=$(./getsetting registry_url)
 export registryUsername=$(./getsetting registry_username)
 export registryPassword=$(./getsetting registry_password)
+export openai_org=$(./getsetting openai_org)
+export openai_key=$(./getsetting openai_key)
+export openai_model=$(./getsetting openai_model)
 
 # for local docker, dev, and debug
 export ZEPHYR_STORAGE_NAME=$instanceName
 export ZEPHYR_STORAGE_KEY=$storageKey
+export ZEPHYR_OPENAI_ORG=$(./getsetting openai_org)
+export ZEPHYR_OPENAI_KEY=$(./getsetting openai_key)
+export ZEPHYR_OPENAI_MODEL=$(./getsetting openai_model)

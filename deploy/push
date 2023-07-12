@@ -21,7 +21,14 @@ az acr build --registry $rgn --image zephyr-server:latest ../server/
 
 
 
-# Build worker
+# Build ingestion worker
 
 echo -e "Building and pushing worker container image..."
-az acr build --registry $rgn --image zephyr-worker:latest ../worker
+az acr build --registry $rgn --image zephyr-ingestion:latest ../workers/ingestion/
+
+
+
+# Build scripthost worker
+
+echo -e "Building and pushing scripthost container image..."
+az acr build --registry $rgn --image zephyr-scripthost:latest ../workers/scripthost/

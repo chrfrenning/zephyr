@@ -1,4 +1,4 @@
-name: Deploy worker to Azure
+name: Deploy scripthost to Azure
 
 env:
   AZURE_WEBAPP_NAME: vkrjjzaur
@@ -6,7 +6,7 @@ env:
 on:
   push:
     branches: [ "main" ]
-    paths: [ "worker/**" ]
+    paths: [ "workers/scripthost/**" ]
   workflow_dispatch:
 
 permissions:
@@ -36,7 +36,7 @@ jobs:
         run: pwd
                 
       - name: Move into server directory
-        run: cd ./worker
+        run: cd ./workers/scripthost
         
       - name: What is here
         run: ls
@@ -44,7 +44,7 @@ jobs:
       - name: Build and push container image to registry
         uses: docker/build-push-action@v4.0.0
         with:
-          tags: ${{ secrets.ACR_FQDN }}/zephyr-worker:latest # ${{ env.REPO }}:${{ github.sha }}
-          file: ./worker/Dockerfile
-          context: ./worker
+          tags: ${{ secrets.ACR_FQDN }}/zephyr-scripthost:latest # ${{ env.REPO }}:${{ github.sha }}
+          file: ./workers/scripthost/Dockerfile
+          context: ./workers/scripthost
           push: true

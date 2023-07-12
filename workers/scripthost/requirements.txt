@@ -1,0 +1,15 @@
+# This file is used by pip to install required python packages
+# Usage: pip install -r requirements.txt
+# Or use e.g. pip install -U Flask if on ifi server (you need to be in user env)
+
+# Basics
+shortuuid
+
+# DS
+pandas
+numpy
+
+# Azure
+azure-storage-blob
+azure-data-tables
+azure-storage-queue

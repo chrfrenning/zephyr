@@ -46,17 +46,21 @@ and the frontend and uses Flask and Ninja templates (see static and templates fo
 ## Run with docker
 
 ```
-  cd ./server
-  . ../deploy/setenv
+  cd ./deploy
+  . ./setenv
+
+  cd ../server
   ./runlocal.sh
 ```
 
 ## Run directly with Python
 
 ```
-  cd ./server
+  cd ./deploy
+  . ./setenv
+
+  cd ../server
   pip install -r requirements.txt
-  ../deploy/setenv
   python3 server.py
 ```
 
@@ -66,7 +70,7 @@ and the frontend and uses Flask and Ninja templates (see static and templates fo
 
 The worker processes datasets after they are uploaded to an azure blob. The upload triggers and event grid notification that posts a message to the "ingestion" queue in the storage account, which is consumed by the worker(s).
 
-To run the worker locally, you must first delete the worker in azure, otherwise they will compete to get new messages. You can redeploy the worker by copying the deployment code from the ./deploy/deploy script.
+To run the worker locally, you must first delete the worker in azure, otherwise they will compete to get new messages. You can redeploy the worker by copying the deployment code from the ./deploy/deploy script. Look for the `az containerapp create` commands.
 
 1. Deploy to Azure (see above, you need the storage account)
 1. Delete the worker in Azure
@@ -75,19 +79,48 @@ To run the worker locally, you must first delete the worker in azure, otherwise 
 ## Run with docker
 
 ```
-  cd ./worker
-  . ../deploy/setenv
+  cd ./deploy
+  . ./setenv
+
+  cd ../workers/ingestion
   ./runlocal.sh
 ```
 
 ## Run directly with Python
 
 ```
-  cd ./worker
+  cd ./deploy
+  . ./setenv
+
+  cd ../workers/ingestion
   pip install -r requirements.txt
-  ../deploy/setenv
+  
   python3 worker.py
 ```
+
+
+# How to run the scripthost locally
+
+The scripthost will execute python scripts created by GPT to analyse a dataset, by first downloading the dataset and making it available to the script.
+
+It is recommended that you run the scripthost in isolation through docker, and not directly on your own machine with unknown scripts (although you can in the same way as the ingestion worker).
+
+To run the worker locally, you must first delete the worker in azure, otherwise they will compete to get new messages. You can redeploy the worker by copying the deployment code from the ./deploy/deploy script. Look for the `az containerapp create` commands.
+
+1. Deploy to Azure (see above, you need the storage account)
+1. Delete the worker in Azure
+1. You have two options, direct or via docker (preferred)
+
+## Run with docker
+
+```
+  cd ./deploy
+  . ./setenv
+
+  cd ../workers/scripthost
+  ./runlocal.sh
+```
+
 
 
 # How to contribute
@@ -102,3 +135,4 @@ Fork and open a PR!
 - [x] Deployment to Azure
 - [ ] Smooth local development and debugging
 - [ ] Deploy a log analytics workspace and config containers to write logs there
+- [ ] Set filename header when downloading report

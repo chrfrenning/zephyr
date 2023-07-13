@@ -131,7 +131,9 @@ Fork and open a PR!
 
 - [x] Create a scaffold for this stuff
 - [x] Deployment to Azure
-- [ ] Smooth local development and debugging
-- [ ] Deploy a log analytics workspace and config containers to write logs there
+- [x] Smooth local development and debugging
+- [x] Deploy a log analytics workspace and config containers to write logs there
+- [x] Use gpt-4 to analyse the uploaded datasets
+- [x] Allow users to ask questions on their datasets
 - [ ] Set filename header when downloading report
 - [ ] Profile also using https://pypi.org/project/DataProfiler/

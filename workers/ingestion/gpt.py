@@ -20,28 +20,31 @@ class Chat:
         self.messages.append( { "role": "system", "content": grounding } )
         print("Grounding: " + grounding)
         
-    def complete(self, text):
+    def complete(self, text, temperature=0.0):
         print("Prompt: " + text)
         
         max_retries = 5
         while max_retries > 0:
             try:
-                response = self.__complete_once(text)
+                response = self.__complete_once(text, temperature)
                 print("Response: " + response)
                 return response
             except openai.error.RateLimitError as error:
                 print(f"Rate limit reached, waiting for 5 seconds... ({error.message})")
                 time.sleep(gpt_wait_response_throttling)
                 max_retries -= 1
+
+    def add_system_message(self, text):
+        self.messages.append( {"role": "system", "content": text} )
     
-    def __complete_once(self, text):
+    def __complete_once(self, text, temperature):
         self.messages.append( {"role": "user", "content": text} )
 
         response = openai.ChatCompletion.create(
             model=model,
             messages = self.messages,
             max_tokens=500,
-            temperature=0.0,
+            temperature=temperature,
             top_p=1.0,
             frequency_penalty=0.0,
             presence_penalty=0.0

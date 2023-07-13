@@ -1,9 +1,10 @@
-from flask import Flask, jsonify, request, abort, send_file, render_template, redirect
+from flask import Flask, jsonify, request, abort, send_file, render_template, redirect, make_response
 
 import os
 import json
 import copy
 import uuid
+import base64
 import subprocess
 import numpy as np
 from datetime import datetime, timedelta
@@ -11,6 +12,9 @@ from azure.storage.blob import (
     BlobServiceClient,
     BlobSasPermissions,
     generate_blob_sas,
+)
+from azure.storage.queue import (
+    QueueServiceClient
 )
 from azure.data.tables import TableClient
 import shortuuid
@@ -257,6 +261,68 @@ def dataset(id):
         report_json_uri = create_download_uri_with_sas(*get_storage_account_url_and_key(), dataset['id'] + '/ydata-report.json')
         print(report_json_uri)
         return render_template('dataset.html', dataset=dataset, download_uri=f'/datasets/{id}.raw', report_uri=f'/datasets/{id}.report', data_uri=report_json_uri)
+
+@app.route('/datasets/<id>', methods=['POST'])
+def dataset_post(id):
+    # if content-type is json, continue
+    content_type = request.headers.get('Content-Type')
+    if content_type is not None and content_type == 'application/json':
+        # load the json document in the request
+        query = request.json
+        print(query['question'])
+        # send request to the worker to process this
+        message = {
+            'type': 'question',
+            'dataset_id': id,
+            'question_id' : str(uuid.uuid4()),
+            'question': query['question']
+        }
+        post_message_to_worker_queue(message)
+        return jsonify({'question_id' : message['question_id']})
+    else:
+        abort(400, 'Content-Type must be application/json')
+
+@app.route('/datasets/<id>/questions/<question_id>', methods=['GET'])
+def dataset_question(id, question_id):
+    dataset = find_dataset_by_id(id)
+    if dataset is None:
+        abort(make_response(jsonify(message="Not Found"), 404))
+    if 'answers' not in dataset:
+        abort(make_response(jsonify(message="Not Found"), 404))
+    questions = json.loads(dataset['answers'])
+    question = next((question for question in questions if question['question_id'] == question_id), None)
+    if question is None:
+        abort(make_response(jsonify(message="Not Found"), 404))
+    # return question and answer
+    result = {
+        'question_id' : question['question_id'],
+        'question' : question['question'],
+        'answer' : question['answer']
+    }
+    return jsonify(result)
+
+def find_dataset_by_id(id):
+    account_name, account_key = get_storage_account_url_and_key()
+    # get all records from the datasets table
+    table_name = get_tablename_for_dataset_records()
+    connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+    table_client = TableClient.from_connection_string(connection_string, table_name)
+    entity = table_client.get_entity(partition_key=get_partition_key_from_id(id), row_key=id)
+    return entity
+
+def get_partition_key_from_id(id):
+    return id.split('-')[0]
+
+def get_worker_queue_name():
+    return 'ingestion' # TODO: Parameterize this
+
+def post_message_to_worker_queue(message):
+    account_name, account_key = get_storage_account_url_and_key()
+    queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
+    queue_client = queue_service_client.get_queue_client(get_worker_queue_name())
+    # base64 encode the message
+    encoded = base64.b64encode(json.dumps(message).encode('utf-8')).decode('utf-8')
+    queue_client.send_message(encoded)
     
 def update_azure_table(storage_account_name, account_key, table_name, entity):
     # Connect to the table client

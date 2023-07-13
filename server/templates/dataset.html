@@ -11,6 +11,7 @@
   <a href="/"><img src="/static/gfx/logo.jpg" alt="Zephyr Logo" id="logo"></a>
   <script>
     dataset_uri = "{{ data_uri|safe }}";
+    profile = null;
     //fetch the dataset
     fetch(dataset_uri).then(response => response.json()).then(data => {
       console.log(data);
@@ -20,6 +21,7 @@
       variable2 = Object.keys(data['scatter'])[1];
       var svg = data['scatter'][variable1][variable2];
       document.getElementById("chart").innerHTML = svg;
+      profile = data;
 
     });
   </script>
@@ -29,6 +31,99 @@
   User: {{ dataset.uname }} <br>
   Date: {{ dataset.date }} <br>
   Tags: {{ dataset.tags }} <br>
+
+  <h2>Ask this dataset something</h2>
+  <input type="text" id="question" name="question" value="">
+  <button onclick="ask()">Ask</button>
+  <div id="answer"></div>
+
+  <script>
+    function ask() {
+      var question = document.getElementById("question").value;
+      console.log(question);
+      // call /datasets/id with POST method using fetch
+      var url = '/datasets/{{ dataset.id }}';
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          question: question
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Success:', data);
+        // display the answer
+        document.getElementById("answer").innerHTML = "Thank you, your question was received! Please wait a minute or two for the answer. You may post more questions right away!";
+        // add the question to the list of questions and answers
+        list = document.getElementById("answers");
+        item = document.createElement("li");
+        item.innerHTML = `Question: ${question} Answer: (processing...)`;
+        // add an attribute with the question id
+        item.setAttribute("question_id", data['question_id']);
+        item.setAttribute("answered", false);
+        list.appendChild(item);
+      })
+      .catch((error) => {
+        console.log('Error:', error);
+      });
+    }
+  </script>
+  
+  <ul id="answers"></ul>
+
+  <script>
+    // for each child in the list of answers, poll to see if an answer has been received
+    function pollQuestions() {
+      var list = document.getElementById("answers");
+      var children = list.children;
+      // for each child, get the question_id attribute
+      for (var i = 0; i < children.length; i++) {
+        var question_id = children[i].getAttribute("question_id");
+        console.log("Checking on " + question_id);
+        var answered = children[i].getAttribute("answered");
+        if ( answered == "true" ) {
+          console.log("already answered");
+          continue;
+        }
+        // call /datasets/id/question_id with GET method using fetch
+        var url = '/datasets/{{ dataset.id }}/questions/' + question_id;
+        console.log(url);
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+          // display the answer
+          var list = document.getElementById("answers");
+          var children = list.children;
+          // for each child, get the question_id attribute
+          for (var i = 0; i < children.length; i++) {
+            var question_id = children[i].getAttribute("question_id");
+            console.log("Found a queston")
+            if (question_id == data['question_id']) {
+              console.log("Found the right question")
+              children[i].innerHTML = `Question: ${data.question} Answer: ${data.answer}`;
+            }
+          }
+        })
+        .catch((error) => {
+          // if error is 404, then the question has not been answered yet
+          if ( error.status == 404 )
+            console.log('No luck yet on the answer to question id:' + question_id);
+          else
+            console.log('Error:', error);
+        });
+      }
+    }
+    setInterval(pollQuestions, 2000);
+  </script>
 
   {% for i in dataset.charts %}
     <h2>{{ i.description }}</h2>

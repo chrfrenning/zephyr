@@ -1,3 +1,56 @@
+/* General */
+
+body, html {
+  margin: 0;
+  padding: 0;
+}
+
+nav {
+  background: #18151E;
+  width: 100%;
+}
+
+.nav-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 20px;
+}
+
+.logo {
+  width: 50px;  /* adjust to suit your logo dimensions */
+  height: 45px;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+}
+
+.nav-links li {
+  margin-left: 30px;
+}
+
+.nav-links a {
+  text-decoration: underline;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: white;
+  padding: 5px 10px;
+}
+
+/* Search */
+input[type=navsearch] {
+  width: 130px;
+  height: 25px;
+  -webkit-transition: width 0.4s ease-in-out;
+  transition: width 0.4s ease-in-out;
+  padding: 5px;
+}
+/* When the search field gets focus, change its width to 100% */
+input[type=navsearch]:focus {
+  width: 50%;
+}
+
 h1 {
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

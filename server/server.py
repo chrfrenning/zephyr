@@ -60,8 +60,10 @@ def home():
 
 def get_storage_account_url_and_key():
     # Get the storage account name and key from the environment variables
-    storageAccountName = os.environ.get('ZEPHYR_STORAGE_NAME')
-    storageAccountKey = os.environ.get('ZEPHYR_STORAGE_KEY')
+  #  storageAccountName = os.environ.get('instanceName')
+    storageAccountName = "zephyr005ca6d0"
+  #  storageAccountKey = os.environ.get('storageKey')
+    storageAccountKey = "/nkpYYTA3wzFeL5/mqnp/0dcXgHhbB6bI+b36n55+whAlkSzP9SE4Vye7M3/LNjdJFdJdVs/tJ3I+AStYy7EPg=="
     return storageAccountName, storageAccountKey
 
 class UserIdentity:
@@ -197,8 +199,7 @@ def list_all_datasets():
     connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
     table_client = TableClient.from_connection_string(connection_string, table_name)
     entities = table_client.list_entities()
-    
-    # pick only the ones with status='complete'
+     # pick only the ones with status='complete'
     # return only RowKey, filename, userId
     return [ {
         'id'        : entity['RowKey'],

@@ -200,7 +200,7 @@ def list_all_datasets():
     
     # pick only the ones with status='complete'
     # return only RowKey, filename, userId
-    return [ {
+    dataset = [ {
         'id'        : entity['RowKey'],
         'filename'  : entity['filename'],
         'uid'       : entity['userId'],
@@ -210,7 +210,15 @@ def list_all_datasets():
         'date'      : entity['date'],
         'tags'      : entity['tags'],
         'blob_id'   : entity['blobId'],
+        'gpt_description' : entity['gpt_description'] if 'gpt_description' in entity else '',
+        'charts' : json.loads(entity['charts']) if 'charts' in entity else []
         } for entity in entities if entity['status'] != 'deleted' ]
+
+    for d in dataset:
+        for c in d['charts']:
+            c['uri'] = create_download_uri_with_sas(account_name, account_key, f"{d['id']}/{c['name']}")
+    print(dataset)
+    return dataset
 
 
 @app.route('/datasets', methods=['GET'])

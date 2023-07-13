@@ -1,16 +1,14 @@
 import os
+import signal
 import json
-import copy
 import time
-import uuid
-import shortuuid
-import subprocess
 import base64
 import numpy as np
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from ydata_profiling import ProfileReport
+import gpt as generator
 
 from azure.storage.blob import (
     BlobServiceClient,
@@ -26,27 +24,25 @@ from azure.storage.queue import (
 from azure.data.tables import TableClient
 
 
-def getIngestionQueueName():
+
+# Global variables, hell yeah ;)
+stop_signal = False
+
+
+
+# Functions and stuff, this is a mess but keep with me for now
+
+def get_ingestion_queue_name():
     return 'ingestion' # TODO: Parameterize this
+
+def get_scripthost_queue_name():
+    return 'scripthost' # TODO: Parameterize this
 
 def get_storage_account_url_and_key():
     # Get the storage account name and key from the environment variables
     storageAccountName = os.environ.get('ZEPHYR_STORAGE_NAME')
     storageAccountKey = os.environ.get('ZEPHYR_STORAGE_KEY')
     return storageAccountName, storageAccountKey
-
-def peek_messages_from_queue(account_name: str, account_key: str, queue_name: str):
-    queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
-    queue_client = queue_service_client.get_queue_client(queue_name)
-    # Peek at messages in the queue
-    messages = queue_client.peek_messages(max_messages=10) 
-    # TODO: actual dequeue and delete if successful
-
-    content = []
-    for peeked_message in messages:
-        #print("Peeked message: " + peeked_message.content)
-        content.append( peeked_message.content )
-    return content
 
 def subject_to_blob_uri(subject):
     # subject is in the form of /blobServices/default/containers/<container>/blobs/<blob>
@@ -62,14 +58,15 @@ def subject_to_ids(subject):
 def process_queue():
     account_name, account_key = get_storage_account_url_and_key()
     queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
-    queue_client = queue_service_client.get_queue_client(getIngestionQueueName())
+    queue_client = queue_service_client.get_queue_client(get_ingestion_queue_name())
     
     # Peek at messages in the queue
     time_wait = 0.5
     wait_cycles = 5
     wait_c = 0
-    while True:
-        msg = queue_client.receive_message(visibility_timeout=300)
+    global stop_signal
+    while stop_signal == False:
+        msg = queue_client.receive_message(visibility_timeout=20)#300)
         # if there is a message, process it
         if msg:
             print(msg)
@@ -91,10 +88,11 @@ def process_queue():
             # no more messages to process, let the container stop
             print('No more messages, waiting a bit')
             time.sleep(time_wait)
-            wait_c += 1
-            if wait_c > wait_cycles:
-                print('No more messages to process, exiting')
-                break
+            # wait_c += 1
+            # if wait_c > wait_cycles:
+            #     print('No more messages to process, exiting')
+            #     break
+    print('Received sigterm, leaving process queue loop')
 
 def download_blob(account_name: str, account_key: str, container_name: str, metadata_id : str, blob_name: str, download_path: str):
     blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
@@ -114,25 +112,13 @@ def insert_into_azure_table(storage_account_name, table_name, account_key, entit
     # Insert the entity
     table_client.create_entity(entity=entity)
 
-def update_azure_table(storage_account_name, table_name, account_key, entity):
+def update_azure_table(storage_account_name, account_key, table_name, entity):
     # Connect to the table client
     connection_string = f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
     table_client = TableClient.from_connection_string(connection_string, table_name)
 
     # Insert the entity
     table_client.update_entity(mode='merge', entity=entity)
-
-def list_all_datasets():
-    account_name, account_key = get_storage_account_url_and_key()
-    # get all records from the datasets table
-    table_name = get_table_name_for_dataset_records()
-    connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
-    table_client = TableClient.from_connection_string(connection_string, table_name)
-    entities = table_client.list_entities()
-    
-    # pick only the ones with status='complete'
-    # return only RowKey, filename, userId
-    return [{'id':entity['RowKey'],'filename':entity['filename'],'userId':entity['userId'],'desc':'This is a static description of a dataset with points for each observation and statistical significance that can lead to conclusions without bias and visually interesting representations.'} for entity in entities if entity['status'] == 'pending']
 
 def get_partition_key_from_id(id):
     return id.split('-')[0]
@@ -157,41 +143,127 @@ def process_blob(metadata_id, blob_id, bloburi):
     print(metadata)
     # update the metadata to status=processing
     metadata['status'] = 'processing'
-    update_azure_table(account_name, get_table_name_for_dataset_records(), account_key, metadata)
+    update_azure_table(account_name, account_key, get_table_name_for_dataset_records(), metadata)
     # download the blob
-    account_name, account_key = get_storage_account_url_and_key()
-    container_name = get_container_name_for_uploads()
-    download_path = f'/tmp/{blob_id}'
-    download_blob(account_name, account_key, container_name, metadata_id, blob_id, download_path)
+    download_path = do_download_blob(metadata_id, blob_id)
     # what type of file
     extension = metadata['filename'].split('.')[-1]
     # if csv
     if extension == 'csv':
         # load into dataframe
         df = pd.read_csv(download_path)
-        #df = pd.DataFrame(np.random.rand(100, 5), columns=["a", "b", "c", "d", "e"])
-        profile = ProfileReport(df, title="Profiling Report")
-        #print(profile.to_json())
-        profile.to_file(f'/tmp/{metadata_id}.html')
-        profile.to_file(f'/tmp/{metadata_id}.json')
-        # upload file to blob storage
-        blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
-        blob_client = blob_service_client.get_blob_client(container_name, f'{metadata_id}/ydata-report.html')
-        with open(f'/tmp/{metadata_id}.html', "rb") as data:
-            blob_client.upload_blob(data, overwrite=True)
-        blob_client = blob_service_client.get_blob_client(container_name, f'{metadata_id}/ydata-report.json')
-        with open(f'/tmp/{metadata_id}.json', "rb") as data:
-            blob_client.upload_blob(data, overwrite=True)
-    
-    # upload the results
-    # update the metadata to status=complete
-    metadata['status'] = 'complete'
-    update_azure_table(account_name, get_table_name_for_dataset_records(), account_key, metadata)
-    
-    
+        # profile the data using ydata
+        create_profile_report(metadata_id, df)
+        # analyze using gpt
+        do_science_stuff(metadata_id, blob_id, metadata, df)
+        # update_azure_table(account_name, account_key, get_table_name_for_dataset_records(), metadata) #redundant
+        # update the metadata to status=complete
+        metadata['status'] = 'complete'
+        update_azure_table(account_name, account_key, get_table_name_for_dataset_records(), metadata)
+    else:
+        print('Ignoring file with unknown extension')
+        metadata['status'] = 'ignored'
+        update_azure_table(account_name, account_key, get_table_name_for_dataset_records(), metadata)
 
+def do_download_blob(metadata_id, blob_id):
+    account_name, account_key = get_storage_account_url_and_key()
+    download_path = f'/tmp/{blob_id}'
+    download_blob(account_name, account_key, get_container_name_for_uploads(), metadata_id, blob_id, download_path)
+    return download_path
+    
+def create_profile_report(metadata_id, df):
+    profile = ProfileReport(df, title="Profiling Report")
+    profile.to_file(f'/tmp/{metadata_id}.html')
+    profile.to_file(f'/tmp/{metadata_id}.json')
+    # upload file to blob storage
+    account_name, account_key = get_storage_account_url_and_key()
+    blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
+    blob_client = blob_service_client.get_blob_client(get_container_name_for_uploads(), f'{metadata_id}/ydata-report.html')
+    with open(f'/tmp/{metadata_id}.html', "rb") as data:
+        blob_client.upload_blob(data, overwrite=True)
+    blob_client = blob_service_client.get_blob_client(get_container_name_for_uploads(), f'{metadata_id}/ydata-report.json')
+    with open(f'/tmp/{metadata_id}.json', "rb") as data:
+        blob_client.upload_blob(data, overwrite=True)
 
+    
+def do_science_stuff(metadata_id, blob_id, metadata, df):
+    # get a random sample with five rows of this data
+    sample = df.sample(5)
+    sample_json = sample.to_json(orient='records')
+
+    # grounding
+    grounding = f"""You are a Data Scientist. Help me understand and analyse a dataset I have in a CSV file.
+    Here are the headers and five random rows in a JSON dump from Pandas: {sample_json}"""
+
+    # describe the dataset
+    chat = generator.Chat(grounding)
+    question = "Describe the dataset in your own words."
+    response = chat.complete(question)
+    metadata["gpt_description"] = response
+
+    # suggest visualisations
+    prompt = """Suggest three visualizations for this dataset. 
+                             
+                Return the results in a json document formatted like this: 
+                
+                {\"vis1\": \"\", \"vis2\": \"\", \"vis3\": \"\"}
+                
+                Return ONLY the JSON document, nothing else."""
+    response = chat.complete(prompt)
+    metadata["gpt_visualisations"] = response
+    vis = {}
+    try:
+        vis = json.loads(response)
+    except:
+        print("GPT failed to suggest visualisations in JSON format, ignoring...")
+        return
+    
+    script_prompt = """Help me create a chart
+    
+    Description: {description}\n\n
+    
+    Write Python code to generate the visualisation described above. 
+    You must use Pandas to load the data from the file 'sample.csv'.
+    Use matplotlib to create a chart. Save the chart to 'chart.png'.
+    Do not change the filenames in your code."""
+
+    for v in vis.keys():
+        description = vis[v]
+        try:
+            response = chat.complete(script_prompt.format(description=description))
+            post_message_to_queue(get_scripthost_queue_name(), {
+                "metadata_id": metadata_id,
+                "blob_id": blob_id,
+                "script": split_code_from_response_and_b64_encode(response),
+                "chart_name": f"{v}.png",
+                "chart_description": description
+            })
+        except:
+            print("Failed to create visualisation " + v)
+
+def split_code_from_response_and_b64_encode(response):
+    code = response.split("```python")[1].split("```")[0]
+    # base64 encode the code
+    return base64.b64encode(code.encode('utf-8')).decode('utf-8')
+
+def post_message_to_queue(queue_name, message):
+    account_name, account_key = get_storage_account_url_and_key()
+    queue_service_client = QueueServiceClient(account_url=f"https://{account_name}.queue.core.windows.net", credential=account_key)
+    queue_client = queue_service_client.get_queue_client(queue_name)
+    queue_client.send_message(json.dumps(message))
+
+def receive_termination_signal(sig_num, frame):
+    print('Received stop signal {}, completing current job then stopping. '.format(sig_num))
+    global stop_signal
+    stop_signal = True
+    return
 
 # main
 if __name__ == "__main__":
+    # Shut me down with sigterm
+    print("New file handling worker started, pid is ", os.getpid(), " send sigterm with 'kill -{} <pid>' or CTRL-C to stop me gracefully.".format(signal.SIGTERM))
+    signal.signal(signal.SIGTERM, receive_termination_signal)
+    signal.signal(signal.SIGINT, receive_termination_signal)
+
+    # Start the main queue processing loop
     process_queue()

@@ -4,6 +4,16 @@ Zephyr is an AI-driven data science service.
 
 
 
+# Requirements
+
+To run this, go to https://zephyr.chph.dev/ or instantiate in your own Azure subscription. You'll need the following:
+
+1. Administrator access to an Azure subscription
+1. An Azure B2C instance (not needed yet but soon)
+1. OpenAI API Access, preferably to GPT-4
+
+
+
 # How to deploy and run in Azure
 
 This will set up and configure a complete environment in your Azure subscription. The far easiest way is to use a GitHub codespace (you must install the az cli) or the Azure Cloud Shell (you must then git clone this repo).
@@ -43,24 +53,19 @@ and the frontend and uses Flask and Ninja templates (see static and templates fo
 1. Deploy to Azure (see above, you need the storage account)
 1. You have two options, direct or via docker (preferred)
 
-## Run with docker
+## Run with docker (easy)
 
 ```
-  cd ./deploy
-  . ./setenv
-
   cd ../server
   ./runlocal.sh
 ```
 
-## Run directly with Python
+## Run directly with Python (almost easy)
 
 ```
-  cd ./deploy
-  . ./setenv
-
   cd ../server
   pip install -r requirements.txt
+  pushd . && cd ../deploy && . ./setenv && popd
   python3 server.py
 ```
 
@@ -76,25 +81,19 @@ To run the worker locally, you must first delete the worker in azure, otherwise 
 1. Delete the worker in Azure
 1. You have two options, direct or via docker (preferred)
 
-## Run with docker
+## Run with docker (easy)
 
 ```
-  cd ./deploy
-  . ./setenv
-
   cd ../workers/ingestion
   ./runlocal.sh
 ```
 
-## Run directly with Python
+## Run directly with Python (almost easy)
 
 ```
-  cd ./deploy
-  . ./setenv
-
   cd ../workers/ingestion
   pip install -r requirements.txt
-  
+  pushd . && cd ../../deploy && . ./setenv && popd
   python3 worker.py
 ```
 
@@ -111,15 +110,14 @@ To run the worker locally, you must first delete the worker in azure, otherwise 
 1. Delete the worker in Azure
 1. You have two options, direct or via docker (preferred)
 
-## Run with docker
+## Run with docker (only recommended way)
 
 ```
-  cd ./deploy
-  . ./setenv
-
   cd ../workers/scripthost
   ./runlocal.sh
 ```
+
+You can obviously also run scripthost directly, and if you insist, figure it out yourself, as you will be executing code created by AI on your own machine. We all know how that will end. Don't come back and say I didn't warn you.
 
 
 
@@ -136,3 +134,4 @@ Fork and open a PR!
 - [ ] Smooth local development and debugging
 - [ ] Deploy a log analytics workspace and config containers to write logs there
 - [ ] Set filename header when downloading report
+- [ ] Profile also using https://pypi.org/project/DataProfiler/

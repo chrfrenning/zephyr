@@ -8,6 +8,7 @@ shortuuid
 # DS
 pandas
 numpy
+matplotlib
 
 # Azure
 azure-storage-blob

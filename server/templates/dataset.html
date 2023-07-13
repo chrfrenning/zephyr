@@ -8,7 +8,7 @@
 </head>
 
 <body>
-  <img src="/static/gfx/logo.jpg" alt="Zephyr Logo" id="logo">
+  <a href="/"><img src="/static/gfx/logo.jpg" alt="Zephyr Logo" id="logo"></a>
   <script>
     dataset_uri = "{{ data_uri|safe }}";
     //fetch the dataset
@@ -24,12 +24,18 @@
     });
   </script>
   <h1>{{ dataset.name }}</h1>
-  <h3>{{ dataset.desc }} </h3>
+  <h3>{{ dataset.gpt_description }} </h3>
 
   User: {{ dataset.uname }} <br>
   Date: {{ dataset.date }} <br>
   Tags: {{ dataset.tags }} <br>
 
+  {% for i in dataset.charts %}
+    <h2>{{ i.description }}</h2>
+    <img src="{{i.uri}}" />
+  {% endfor %}
+
+  <h2>A random chart from the data profiler</h2>
   <div id="chart" style="width: 100px"></div>
 
   <a href="{{ report_uri }}">View full report</a> <br>
@@ -68,5 +74,8 @@
       return(false);
     }
   </script>
+
+
+  <!-- {{ dataset|safe }} -->
   
 </body>

@@ -19,6 +19,23 @@ class Chat:
         self.messages = []
         self.messages.append( { "role": "system", "content": grounding } )
         print("Grounding: " + grounding)
+        self.functions = [
+        {
+            "name": "get_current_weather",
+            "description": "Get the current weather in a given location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The city and state, e.g. San Francisco, CA",
+                    },
+                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
+                },
+                "required": ["location"],
+            },
+        }
+    ]
         
     def complete(self, text, temperature=0.0):
         print("Prompt: " + text)
@@ -28,6 +45,20 @@ class Chat:
             try:
                 response = self.__complete_once(text, temperature)
                 print("Response: " + response)
+                return response.choices[0].message.content
+            except openai.error.RateLimitError as error:
+                print(f"Rate limit reached, waiting for 5 seconds... ({error.message})")
+                time.sleep(gpt_wait_response_throttling)
+                max_retries -= 1
+
+    def complete2(self, text, temperature=0.0, functions=True):
+        print("Prompt: " + text)
+        
+        max_retries = 5
+        while max_retries > 0:
+            try:
+                response = self.__complete_once(text, temperature, functions)
+                #print("Response: " + response)
                 return response
             except openai.error.RateLimitError as error:
                 print(f"Rate limit reached, waiting for 5 seconds... ({error.message})")
@@ -37,7 +68,7 @@ class Chat:
     def add_system_message(self, text):
         self.messages.append( {"role": "system", "content": text} )
     
-    def __complete_once(self, text, temperature):
+    def __complete_once(self, text, temperature, functions):
         self.messages.append( {"role": "user", "content": text} )
 
         response = openai.ChatCompletion.create(
@@ -47,9 +78,12 @@ class Chat:
             temperature=temperature,
             top_p=1.0,
             frequency_penalty=0.0,
-            presence_penalty=0.0
+            presence_penalty=0.0,
+            functions = self.functions if functions else None,
+            function_call = "auto" if functions else "none"
         )
-        return response.choices[0].message.content
+
+        return response
 
 
 # create image from text using openai, output to image.png

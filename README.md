@@ -94,7 +94,7 @@ To run the worker locally, you must first delete the worker in azure, otherwise 
   cd ../workers/ingestion
   pip install -r requirements.txt
   pushd . && cd ../../deploy && . ./setenv && popd
-  python3 worker.py
+  python3 ingestion.py
 ```
 
 

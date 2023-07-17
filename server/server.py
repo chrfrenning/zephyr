@@ -60,10 +60,10 @@ def home():
 
 def get_storage_account_url_and_key():
     # Get the storage account name and key from the environment variables
-  #  storageAccountName = os.environ.get('instanceName')
-    storageAccountName = "zephyr005ca6d0"
-  #  storageAccountKey = os.environ.get('storageKey')
-    storageAccountKey = "/nkpYYTA3wzFeL5/mqnp/0dcXgHhbB6bI+b36n55+whAlkSzP9SE4Vye7M3/LNjdJFdJdVs/tJ3I+AStYy7EPg=="
+ #   storageAccountName = os.environ.get('instanceName')
+ #   storageAccountKey = os.environ.get('storageKey')
+    storageAccountName = "zephyr00887fd9"
+    storageAccountKey = "28moaQ/oBV7Ajntncnd+nfmUnaL0xjA7ktqTEvkXddxMzOEETuwH5mpwRMqOJbiuvBfi4GwVmleC+AStHBsv+g=="
     return storageAccountName, storageAccountKey
 
 class UserIdentity:

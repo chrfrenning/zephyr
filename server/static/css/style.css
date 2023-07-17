@@ -6,7 +6,7 @@ body, html {
 }
 
 nav {
-  background: #18151E;
+  background: #18151E; 
   width: 100%;
 }
 
@@ -14,7 +14,7 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px 20px;
+  padding-left: 5px;
 }
 
 .logo {
@@ -23,49 +23,56 @@ nav {
 }
 
 .nav-links {
+  position: relative;
+  right: 10px;
   list-style: none;
   display: flex;
-}
-
-.nav-links li {
   margin-left: 30px;
 }
 
 .nav-links a {
   text-decoration: underline;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 15px;
   color: white;
-  padding: 5px 10px;
+  padding: 1px 15px;
 }
 
 /* Search */
+.navsearch-wrapper {
+  align-items: normal;
+  text-decoration: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: white;
+  padding: 1px;
+}
+
 input[type=navsearch] {
   width: 130px;
-  height: 25px;
+  height: 20px;
   -webkit-transition: width 0.4s ease-in-out;
   transition: width 0.4s ease-in-out;
-  padding: 5px;
+  padding-right: 15px;
+  border-radius: 10px;
 }
 /* When the search field gets focus, change its width to 100% */
 input[type=navsearch]:focus {
-  width: 50%;
+  width: 260px;
 }
 
 h1 {
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-#logo {
-    width: 100px;
-}
 
 
 /* Upload Control */
 #drop-area {
+    display: flex;
     border: 2px dashed #ccc;
     border-radius: 20px;
-    width: 480px;
+    width: 640px;
     font-family: sans-serif;
-    margin: 100px auto;
+    margin: 20px auto;
     padding: 20px;
   }
   #drop-area.highlight {

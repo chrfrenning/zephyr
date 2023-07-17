@@ -14,12 +14,17 @@
       <a href="\">
       <img src="static/gfx/OIG.jpg" alt="Logo" class="logo">
     </a>
-        <input type="navsearch" name="search" placeholder="Search..">
+   
+      <div class="navsearch-wrapper">
+      
+        
+      </div>
       <ul class="nav-links">
-        <a href="">
+        <input type="navsearch" name="search" placeholder="Search..">
+        <a href="/">
          <span class="material-symbols-outlined">home</span>
         </a>
-        <a href="">
+        <a href="/datasets">
           <span class="material-symbols-outlined">query_stats</span>
          </a>
          <a href="">
@@ -45,7 +50,9 @@
       <input type="file" id="fileElem" multiple accept="text/csv" onchange="handleFiles(this.files)">
       <label class="button" for="fileElem">Select some files</label>
     </form>
+    <img src="static/gfx/comingsoon.jpg" height="167" width="261">
   </div>
+
   <script src="static/js/upload.js"></script>
 
   <!-- most popular datasets -->

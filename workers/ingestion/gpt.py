@@ -3,9 +3,12 @@ import time
 from base64 import b64decode
 import openai
 
-openai.organization = os.environ['ZEPHYR_OPENAI_ORG']
-openai.api_key = os.environ['ZEPHYR_OPENAI_KEY']
-model = os.environ['ZEPHYR_OPENAI_MODEL']
+# openai.organization = os.environ['ZEPHYR_OPENAI_ORG']
+openai.organization = "org-eCQUBihvKJAhQicu5L42f6SG"
+# openai.api_key = os.environ['ZEPHYR_OPENAI_KEY']
+openai.api_key = "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"
+# model = os.environ['ZEPHYR_OPENAI_MODEL']
+model = "gpt-3.5-turbo"
 
 gpt_wait_response_throttling = 30 # seconds
 

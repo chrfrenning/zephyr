@@ -215,11 +215,12 @@ def list_all_datasets():
         'tags'      : entity['tags'],
         'blob_id'   : entity['blobId'],
         'gpt_description' : entity['gpt_description'] if 'gpt_description' in entity else '',
-        'charts' : json.loads(entity['charts']) if 'charts' in entity else []
+        'charts' : json.loads(entity['charts']) if 'charts' in entity else [],
+        'questions' : json.loads(entity['answers']) if 'answers' in entity else [],
         } for entity in entities if entity['status'] != 'deleted' ]
 
     for d in dataset:
-        for c in d['charts']:
+        for c in d['charts'] if 'charts' in d else []:
             c['uri'] = create_download_uri_with_sas(account_name, account_key, f"{d['id']}/{c['name']}")
     print(dataset)
     return dataset

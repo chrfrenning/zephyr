@@ -137,3 +137,4 @@ Fork and open a PR!
 - [x] Allow users to ask questions on their datasets
 - [ ] Set filename header when downloading report
 - [ ] Profile also using https://pypi.org/project/DataProfiler/
+- [ ] Design, this thing is ugly

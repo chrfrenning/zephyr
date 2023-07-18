@@ -64,7 +64,11 @@
         // add an attribute with the question id
         item.setAttribute("question_id", data['question_id']);
         item.setAttribute("answered", false);
-        list.appendChild(item);
+        // add the child at the start of the list if there are already questions
+        if (list.children.length > 0)
+          list.insertBefore(item, list.children[0]);
+        else
+          list.appendChild(item);
       })
       .catch((error) => {
         console.log('Error:', error);
@@ -72,7 +76,12 @@
     }
   </script>
   
-  <ul id="answers"></ul>
+  <ul id="answers">
+    <!-- for every question/answer in dataset.questions -->
+    {% for i in dataset.questions %}
+      <li question_id="{{ i.question_id }}" answered="true">Question: {{ i.question }} Answer: {{ i.answer }}</li>
+    {% endfor %}
+  </ul>
 
   <script>
     // for each child in the list of answers, poll to see if an answer has been received

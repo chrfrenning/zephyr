@@ -69,19 +69,26 @@ def process_queue():
         msg = queue_client.receive_message(visibility_timeout=20)#300)
         # if there is a message, process it
         if msg:
-            print(msg)
+            print("message: ", msg)
             decoded_message = base64.b64decode(msg.content).decode('utf-8')
+            print("decoded: ", decoded_message)
             data = json.loads(decoded_message)
-            if data['eventType'] == 'Microsoft.Storage.BlobCreated':
-                bloburi = data['subject']
-                blob_id, metadata_id = subject_to_ids(bloburi)
-                if not '.' in blob_id:
-                    blob_url = subject_to_blob_uri(bloburi)
-                    process_blob(metadata_id, blob_id, blob_url)
+            print("jsonloaded: ", data)
+            if 'eventType' in data:
+                if data['eventType'] == 'Microsoft.Storage.BlobCreated':
+                    bloburi = data['subject']
+                    blob_id, metadata_id = subject_to_ids(bloburi)
+                    if not '.' in blob_id:
+                        blob_url = subject_to_blob_uri(bloburi)
+                        process_blob(metadata_id, blob_id, blob_url)
+                    else:
+                        print('Ignoring file with extension')
                 else:
-                    print('Ignoring file with extension')
+                    print('Unknown event type')
+            elif 'type' in data and data['type'] == 'question':
+                handle_question(data)
             else:
-                print('Unknown event type')
+                print('Unknown message type')
             # delete the message from the queue
             queue_client.delete_message(msg)
         else:
@@ -94,9 +101,45 @@ def process_queue():
             #     break
     print('Received sigterm, leaving process queue loop')
 
+def handle_question(message):
+    print('Received a question! :)')
+    dataset = find_dataset_by_id(message['dataset_id'])
+    question_id = message['question_id']
+    question = message['question']
+    blob_id = dataset['blobId']
+    # download the dataset
+    download_path = f"/tmp/{message['dataset_id']}"
+    download_blob2(blob_id, download_path)
+    # load dataset into pandas
+    df = pd.read_csv(download_path)
+    # ask chatgpt
+    grounding = """You are a Data Scientist. Answer questions from the user exclusively based on the dataset provided."""
+    chat = generator.Chat(grounding)
+    chat.add_system_message(df.sample(50).to_string(index=False))
+    response = chat.complete(question)
+    # add this to the dataset
+    answers = []
+    if 'answers' in dataset:
+        answers = json.loads(dataset['answers'])
+    answers.append({'question_id': question_id, 'question': question, 'answer': response})
+    dataset['answers'] = json.dumps(answers)
+    # upload the dataset
+    update_azure_table(*get_storage_account_url_and_key(), get_table_name_for_dataset_records(), dataset)
+    # delete the downloaded file
+    os.remove(download_path)
+
 def download_blob(account_name: str, account_key: str, container_name: str, metadata_id : str, blob_name: str, download_path: str):
     blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
     blob_client = blob_service_client.get_blob_client(container_name, f'{metadata_id}/{blob_name}')
+    # Download the blob to a file
+    with open(download_path, "wb") as download_file:
+        download_file.write(blob_client.download_blob().readall())
+
+def download_blob2(blob_id: str, download_path: str):
+    account_name, account_key = get_storage_account_url_and_key()
+    container_name = get_container_name_for_uploads()
+    blob_service_client = BlobServiceClient(account_url=f"https://{account_name}.blob.core.windows.net", credential=account_key)
+    blob_client = blob_service_client.get_blob_client(container_name, f'{blob_id}')
     # Download the blob to a file
     with open(download_path, "wb") as download_file:
         download_file.write(blob_client.download_blob().readall())

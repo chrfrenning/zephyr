@@ -66,14 +66,21 @@ h1 {
 
 
 /* Upload Control */
+#frontpage-toparea {
+  display: flex;
+}
+#introvideo {
+  padding: 20px;
+}
 #drop-area {
-    display: flex;
     border: 2px dashed #ccc;
     border-radius: 20px;
-    width: 640px;
-    font-family: sans-serif;
+    width:75% ;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 20px;
     margin: 20px auto;
-    padding: 20px;
+    margin-left: 20px;
+    padding: 15px; 
   }
   #drop-area.highlight {
     border-color: purple;
@@ -106,4 +113,9 @@ h1 {
   }
   #fileElem {
     display: none;
+  }
+
+  #frontpage-feed {
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }

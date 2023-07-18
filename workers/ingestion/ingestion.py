@@ -40,11 +40,9 @@ def get_scripthost_queue_name():
 
 def get_storage_account_url_and_key():
     # Get the storage account name and key from the environment variables
-#    storageAccountName = os.environ.get('ZEPHYR_STORAGE_NAME')
-    storageAccountName = "zephyr00887fd9"
-#   storageAccountKey = os.environ.get('ZEPHYR_STORAGE_KEY')
-    storageAccountKey = "28moaQ/oBV7Ajntncnd+nfmUnaL0xjA7ktqTEvkXddxMzOEETuwH5mpwRMqOJbiuvBfi4GwVmleC+AStHBsv+g=="
-    return storageAccountName, storageAccountKey
+   storageAccountName = os.environ.get('ZEPHYR_STORAGE_NAME')
+   storageAccountKey = os.environ.get('ZEPHYR_STORAGE_KEY')
+   return storageAccountName, storageAccountKey
 
 def subject_to_blob_uri(subject):
     # subject is in the form of /blobServices/default/containers/<container>/blobs/<blob>

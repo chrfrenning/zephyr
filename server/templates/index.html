@@ -42,25 +42,33 @@
     </div>
   </nav>
 
-  
+<div id="frontpage-toparea">
   <!-- area to upload files -->
   <div id="drop-area">
     <form class="upload-form">
-      <p>Upload multiple files with the file dialog or by dragging and dropping CSV files onto the dashed region</p>
+      <p>How it works:<br>
+        1. Explore the data stories that others are collecting and sharing<br>
+        2. Start collecting and sharing data stories yourself, and let us be your data analyst!<br>
       <input type="file" id="fileElem" multiple accept="text/csv" onchange="handleFiles(this.files)">
-      <label class="button" for="fileElem">Select some files</label>
+      <label class="button" for="fileElem">Try it out with some files</label>
     </form>
-    <img src="static/gfx/comingsoon.jpg" height="167" width="261">
   </div>
+  <div id="introvideo">
+    <img src="static/gfx/comingsoon.jpg" height="177" width="261">
+  </div>
+</div>
 
   <script src="static/js/upload.js"></script>
 
   <!-- most popular datasets -->
   <!-- fetch accept: application/json from /datsets/top -->
+  <div id="frontpage-feed">
+
   <h2>Recent datasets</h2>
   <ul id="top-datasets">
     
   </ul>
+ 
   <a href="/datasets">See all datasets</a>
   <script>
     function loadDatasets() {
@@ -80,7 +88,7 @@
           let p = document.createElement('p');
           a.href = `/datasets/${dataset.id}`;
           a.innerText = dataset.filename;
-          p.innerText = dataset.desc;
+          p.innerText = dataset.gpt_description;
           li.appendChild(a);
           li.appendChild(p);
           topDatasets.appendChild(li);
@@ -90,6 +98,6 @@
     loadDatasets();
     setInterval(loadDatasets, 5000);
   </script>
-  
+  </div>
   
 </body>

@@ -4,17 +4,52 @@
   <meta charset="UTF-8">
   <title>All Datasets - Zephyr/1.0</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,1,0" />
   <script src="/static/js/script.js"></script>
 </head>
 
 <body>
-  <a href="/"></a><img src="/static/gfx/logo.jpg" alt="Zephyr Logo" id="logo"></a>
-  <h1>Zephyr/1.0 - All public datasets</h1>
+  <nav>
+    <div class="nav-wrapper">
+      <a href="\">
+      <img src="/static/gfx/OIG.jpg" alt="Logo" class="logo">
+    </a>
+   
+      <div class="navsearch-wrapper">
+      
+        
+      </div>
+      <ul class="nav-links">
+        <input type="navsearch" name="search" placeholder="Search..">
+        <a href="/">
+         <span class="material-symbols-outlined">home</span>
+        </a>
+        <a href="/datasets">
+          <span class="material-symbols-outlined">query_stats</span>
+         </a>
+         <a href="">
+          <span class="material-symbols-outlined">upload_file</span>
+         </a>
+         <a href="">
+          <span class="material-symbols-outlined">notifications</span>
+         </a>
+         <!-- TODO: placeholder for loggedon user -->
+         <a href="">christoffer@frenning.com</a>
+        <a href="" alt="Manage account">
+         <span class="material-symbols-outlined">manage_accounts</span>
+        </a>
+      </ul>
+    </div>
+  </nav>
+
+  <div id="frontpage-feed">
+  <h1>All public datasets</h1>
   
   <ul>
     {% for item in datasets %}
         <li><a href="/datasets/{{ item['id'] }}">{{ item['filename'] }}</a></li>
     {% endfor %}
   </ul>
+</div>
   
 </body>
